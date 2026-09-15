@@ -5,6 +5,12 @@ WebAssembly text format. It renders a crisp pixel-art playfield in a true
 1280×720 framebuffer and produces its music and sound effects inside the Wasm
 module.
 
+## Play it now:
+```
+npx wasmcart https://raw.githubusercontent.com/wasmcart/blocks4-wat/main/blocks4-wat.wasc
+```
+
+
 ## Build, run, and test
 
 ```sh
