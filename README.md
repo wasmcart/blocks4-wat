@@ -10,6 +10,7 @@ module.
 npx wasmcart https://raw.githubusercontent.com/wasmcart/blocks4-wat/main/blocks4-wat.wasc
 ```
 
+![Blocks 4 gameplay after several turns](screenshots/gameplay.png)
 
 ## Build, run, and test
 
