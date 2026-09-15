@@ -433,6 +433,22 @@
         (global.set $locktimer (i32.const 0)) (return (i32.const 1))))
     (i32.const 0))
 
+  ;; Final safety invariant: the active piece must never share a cell with the
+  ;; settled board. Recover upward if external state or a future transition
+  ;; ever violates it; if no legal position remains, top out before drawing.
+  (func $ensure_active_valid
+    (if (global.get $over) (then (return)))
+    (block $done (loop $lift
+      (br_if $done (call $fits (global.get $piece) (global.get $rot)
+        (global.get $px) (global.get $py)))
+      (global.set $py (i32.sub (global.get $py) (i32.const 1)))
+      (if (i32.lt_s (global.get $py) (i32.const -4))
+        (then
+          (global.set $over (i32.const 1))
+          (call $tone (i32.const 110) (i32.const 8000))
+          (return)))
+      (br $lift))))
+
   (func $color (param $v i32) (result i32)
     (if (i32.eq (local.get $v) (i32.const 1)) (then (return (i32.const 0x0000e8f8))))
     (if (i32.eq (local.get $v) (i32.const 2)) (then (return (i32.const 0x00f8e840))))
@@ -458,9 +474,19 @@
           (if (i32.ge_s (local.get $y) (i32.const 0))
             (then
               (if (local.get $ghost)
-                (then (call $fill (i32.add (i32.const 76) (i32.mul (local.get $x) (i32.const 11)))
-                         (i32.add (i32.const 10) (i32.mul (local.get $y) (i32.const 11)))
-                         (i32.const 9) (i32.const 9) (i32.const 0x00383858)))
+                (then
+                  (call $fill (i32.add (i32.const 76) (i32.mul (local.get $x) (i32.const 11)))
+                    (i32.add (i32.const 10) (i32.mul (local.get $y) (i32.const 11)))
+                    (i32.const 9) (i32.const 1) (i32.const 0x00605888))
+                  (call $fill (i32.add (i32.const 76) (i32.mul (local.get $x) (i32.const 11)))
+                    (i32.add (i32.const 18) (i32.mul (local.get $y) (i32.const 11)))
+                    (i32.const 9) (i32.const 1) (i32.const 0x00605888))
+                  (call $fill (i32.add (i32.const 76) (i32.mul (local.get $x) (i32.const 11)))
+                    (i32.add (i32.const 10) (i32.mul (local.get $y) (i32.const 11)))
+                    (i32.const 1) (i32.const 9) (i32.const 0x00605888))
+                  (call $fill (i32.add (i32.const 84) (i32.mul (local.get $x) (i32.const 11)))
+                    (i32.add (i32.const 10) (i32.mul (local.get $y) (i32.const 11)))
+                    (i32.const 1) (i32.const 9) (i32.const 0x00605888)))
                 (else (call $cell (i32.add (i32.const 76) (i32.mul (local.get $x) (i32.const 11)))
                          (i32.add (i32.const 10) (i32.mul (local.get $y) (i32.const 11)))
                          (i32.add (local.get $p) (i32.const 1)))))))))
@@ -591,6 +617,7 @@
     (if (i32.and (local.get $btn) (i32.const 3072))
       (then (global.set $repeat (i32.add (global.get $repeat) (i32.const 1))))
       (else (global.set $repeat (i32.const 0))))
+    (call $ensure_active_valid)
     (global.set $oldbtn (local.get $btn))
     (call $draw) (call $audio))
 

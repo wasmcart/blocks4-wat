@@ -188,4 +188,72 @@ function candidate(board, mask, x) {
   assert.ok(game.e.debug_lines.value >= 2, 'playthrough never completed lines');
 }
 
+// Collision invariant under adversarial controller input: an active piece may
+// touch settled blocks but must never occupy the same board cell.
+{
+  const game = await makeGame();
+  const masks = new Uint16Array(game.e.memory.buffer, 3741000, 28);
+  let random = 0x51f15e;
+  for (let frame = 0; frame < 1200; frame++) {
+    random = (Math.imul(random, 1664525) + 1013904223) >>> 0;
+    let input = 512; // Keep soft drop held so the test builds a real stack.
+    if ((random & 15) === 0) input |= 1024;
+    if ((random & 15) === 1) input |= 2048;
+    if ((random & 31) === 2) input |= 1;
+    if ((random & 31) === 3) input |= 2;
+    game.buttons[0] = input;
+    game.e.wc_render();
+    if (game.e.debug_game_over.value) {
+      game.buttons[0] = 0;
+      game.e.wc_render();
+      tap(game, 1);
+      continue;
+    }
+    const piece = game.e.debug_piece.value;
+    const rotation = game.e.debug_rotation.value;
+    const ox = game.e.debug_x.value;
+    const oy = game.e.debug_y.value;
+    const mask = masks[piece * 4 + rotation];
+    for (let i = 0; i < 16; i++) {
+      if (!((mask >>> i) & 1)) continue;
+      const x = ox + (i & 3);
+      const y = oy + (i >>> 2);
+      if (y >= 0) {
+        assert.equal(game.board[y * 10 + x], 0,
+          `active piece overlapped board at frame ${frame}, cell ${x},${y}`);
+      }
+    }
+  }
+  game.buttons[0] = 0;
+}
+
+// The runtime invariant also repairs an invalid overlapping position before
+// it can be rendered, protecting against corrupt or externally edited state.
+{
+  const game = await makeGame();
+  const masks = new Uint16Array(game.e.memory.buffer, 3741000, 28);
+  game.e.debug_y.value = 5;
+  const piece = game.e.debug_piece.value;
+  const mask = masks[piece * 4];
+  for (let i = 0; i < 16; i++) {
+    if ((mask >>> i) & 1) {
+      const x = game.e.debug_x.value + (i & 3);
+      const y = game.e.debug_y.value + (i >>> 2);
+      game.board[y * 10 + x] = 1;
+    }
+  }
+  game.e.wc_render();
+  const ox = game.e.debug_x.value;
+  const oy = game.e.debug_y.value;
+  if (!game.e.debug_game_over.value) {
+    for (let i = 0; i < 16; i++) {
+      if ((mask >>> i) & 1) {
+        const x = ox + (i & 3);
+        const y = oy + (i >>> 2);
+        if (y >= 0) assert.equal(game.board[y * 10 + x], 0);
+      }
+    }
+  }
+}
+
 console.log('blocks4-wat: Tetris rules and 30-piece controller playthrough passed');
