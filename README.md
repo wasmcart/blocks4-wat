@@ -52,3 +52,6 @@ The test suite validates the wasmcart ABI, 1280×720 output, seven-bag behavior,
 both rotation directions, wall kicks, lock delay, soft drop, line clearing,
 restart behavior, and audio. It also completes a controller-driven 30-piece
 playthrough using the public input ABI.
+
+Learn more about the format, runtime, and other carts at
+[wasmcart.org](https://wasmcart.org/).
