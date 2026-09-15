@@ -1,0 +1,10 @@
+{
+  "name": "Blocks 4 WAT",
+  "version": "1.0.0",
+  "abi": 3,
+  "entry": "game.wasm",
+  "width": 1280,
+  "height": 720,
+  "players": 1,
+  "controls": ["dpad", "a", "b", "x", "y", "start"]
+}
