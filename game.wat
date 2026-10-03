@@ -2,8 +2,11 @@
   ;; Blocks 4: a complete falling-block game written directly in WebAssembly text.
   (memory (export "memory") 60)
 
-  ;; ABI memory: info=0, audio cursor=80, pads=96, time=160, host=184,
-  ;; save=208, framebuffer=4096, audio ring=3700000, board=3740000.
+  ;; ABI v4 memory: info=0 (72 bytes), audio cursor=80, time=160 (24),
+  ;; host=184 (20), save=208 (16), pads=224 (4 x 20 = 80, ends 304),
+  ;; framebuffer=4096, audio ring=3700000, board=3740000.
+  ;; Pads used to sit at 96; the v4 pad block is 80 bytes, so there it ran
+  ;; over the clock at 160 and the host wrote time into pad 3 every frame.
   (global $frame (mut i32) (i32.const 0))
   (global $rng (mut i32) (i32.const 0x41c64e6d))
   (global $piece (mut i32) (i32.const 0))
@@ -537,14 +540,14 @@
             (call $text (i32.const 3742042) (i32.const 9) (i32.const 88) (i32.const 122) (i32.const 2) (i32.const 0x00ffffff)))))
 
   (func (export "wc_get_info") (result i32)
-    (i32.store (i32.const 0) (i32.const 3)) (i32.store (i32.const 4) (i32.const 1280))
+    (i32.store (i32.const 0) (i32.const 4)) (i32.store (i32.const 4) (i32.const 1280))
     (i32.store (i32.const 8) (i32.const 720)) (i32.store (i32.const 12) (i32.const 4096))
     (i32.store (i32.const 16) (i32.const 3700000)) (i32.store (i32.const 20) (i32.const 4096))
-    (i32.store (i32.const 24) (i32.const 80)) (i32.store (i32.const 28) (i32.const 96))
+    (i32.store (i32.const 24) (i32.const 80)) (i32.store (i32.const 28) (i32.const 224))
     (i32.store (i32.const 32) (i32.const 208)) (i32.store (i32.const 36) (i32.const 16))
     (i32.store (i32.const 40) (i32.const 160)) (i32.store (i32.const 44) (i32.const 184))
     (i32.store (i32.const 48) (i32.const 1)) (i32.store (i32.const 52) (i32.const 48000))
-    (i64.store (i32.const 56) (i64.const 0)) (i64.store (i32.const 64) (i64.const 0))
+    (i64.store (i32.const 56) (i64.const 0)) (i64.store (i32.const 64) (i64.const 0)) ;; pointer, keys, gpu_api, wheel_ptr = 0
     (i32.const 0))
 
   (func (export "wc_init")
@@ -555,7 +558,7 @@
   (func (export "wc_render")
     (local $btn i32) (local $pressed i32) (local $delay i32) (local $restarted i32)
     (global.set $frame (i32.add (global.get $frame) (i32.const 1)))
-    (local.set $btn (i32.load16_u (i32.const 96)))
+    (local.set $btn (i32.load (i32.const 224)))  ;; v4 buttons are u32
     (local.set $pressed (i32.and (local.get $btn) (i32.xor (global.get $oldbtn) (i32.const -1))))
 
     (if (i32.and (local.get $pressed) (i32.const 64))

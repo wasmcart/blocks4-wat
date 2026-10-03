@@ -7,12 +7,18 @@ async function makeGame() {
   const { instance } = await WebAssembly.instantiate(wasm);
   const e = instance.exports;
   assert.equal(e.wc_get_info(), 0);
-  assert.deepEqual([...new Uint32Array(e.memory.buffer).slice(0, 3)], [3, 1280, 720]);
+  assert.deepEqual([...new Uint32Array(e.memory.buffer).slice(0, 3)], [4, 1280, 720]);
+  // ABI v4: the 80-byte pad block must not overlap the clock, host info or save.
+  const info = new Uint32Array(e.memory.buffer, 0, 18);
+  const regions = [[0, 72], [info[6], 4], [info[7], 80], [info[8], info[9]], [info[10], 24], [info[11], 20]]
+    .sort((a, b) => a[0] - b[0]);
+  for (let i = 1; i < regions.length; i++)
+    assert.ok(regions[i - 1][0] + regions[i - 1][1] <= regions[i][0], `ABI regions overlap at ${regions[i][0]}`);
   e.wc_init();
   return {
     e,
     board: new Uint8Array(e.memory.buffer, 3740000, 200),
-    buttons: new Uint16Array(e.memory.buffer, 96, 1),
+    buttons: new Uint32Array(e.memory.buffer, 224, 1),
   };
 }
 
