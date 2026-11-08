@@ -1,6 +1,5 @@
 {
   "name": "Blocks 4 WAT",
-  "version": "1.0.0",
   "abi": 4,
   "entry": "game.wasm",
   "width": 1280,
